@@ -9,6 +9,11 @@ from urllib.parse import quote
 import numpy as np
 import plotly.graph_objects as go
 import streamlit as st
+try:
+ st.sidebar.page_link("pages/2_Elder_Care_Help.py", label="🤝 Elder Care Help (बुज़ुर्गों की देखभाल)")
+except Exception:
+ pass
+
 import streamlit.components.v1 as components
 
 
