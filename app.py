@@ -1466,6 +1466,13 @@ st.set_page_config(
     layout="wide",
     page_icon="🧬",
 )
+
+# === MODE_SWITCH_START ===
+import streamlit as st
+if st.sidebar.radio("🧭 Navigation / नेविगेशन", ["🧠 3D Clinical Atlas", "🤝 Elder Care Help (बुज़ुर्गों की देखभाल)"]) == "🤝 Elder Care Help (बुज़ुर्गों की देखभाल)":
+    exec(open("pages/2_Elder_Care_Help.py", encoding="utf-8").read(), globals())
+    st.stop()
+# === MODE_SWITCH_END ===
 st.markdown(
     """
     <style>
