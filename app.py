@@ -1477,33 +1477,46 @@ st.sidebar.markdown("""
     [data-testid="stSidebarNav"] { display: none !important; }
     .nav-hdr {
         font-family: 'Plus Jakarta Sans', -apple-system, sans-serif !important;
-        font-size: 1.35rem !important;
+        font-size: 1.25rem !important;
         font-weight: 800 !important;
         color: #0F172A !important;
         letter-spacing: -0.02em !important;
-        margin: 0 0 4px 0 !important;
+        margin: 2px 0 2px 0 !important;
     }
     .nav-sub {
         font-family: 'Plus Jakarta Sans', 'Noto Sans Devanagari', sans-serif !important;
-        font-size: 0.85rem !important;
+        font-size: 0.82rem !important;
         font-weight: 600 !important;
         color: #64748B !important;
-        margin: 0 0 12px 0 !important;
+        margin: 0 c 12px 0 !important;
     }
+    /* Sleek theme-matched sidebar buttons with no awkward wrapping */
     section[data-testid="stSidebar"] div.stButton > button {
         width: 100% !important;
-        border-radius: 12px !important;
-        min-height: 46px !important;
-        padding: 0.55rem 0.9rem !important;
+        border-radius: 14px !important;
+        min-height: 50px !important;
+        padding: 0.6rem 0.8rem !important;
         font-family: 'Plus Jakarta Sans', 'Noto Sans Devanagari', sans-serif !important;
-        font-size: 0.94rem !important;
-        font-weight: 700 !important;
-        margin-bottom: 6px !important;
+        font-size: 0.92rem !important;
+        font-weight: 800 !important;
+        white-space: nowrap !important;
+        margin-bottom: 8px !important;
         transition: all 0.15s ease !important;
     }
+    section[data-testid="stSidebar"] div.stButton > button[kind="primary"] {
+        background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%) !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25) !important;
+    }
+    section[data-testid="stSidebar"] div.stButton > button[kind="secondary"] {
+        background: #FFFFFF !important;
+        color: #0F172A !important;
+        border: 1.5px solid #CBD5E1 !important;
+    }
 </style>
-<div class="nav-hdr">Module Switcher</div>
-<div class="nav-sub">Select Clinical Workspace:</div>
+<div class="nav-hdr">Clinical Workspace</div>
+<div class="nav-sub">Select Active Module:</div>
 """, unsafe_allow_html=True)
 
 if st.sidebar.button(
@@ -1516,7 +1529,7 @@ if st.sidebar.button(
     st.rerun()
 
 if st.sidebar.button(
-    "🤝 Elder Care • बुज़ुर्ग देखभाल",
+    "🤝 Elder Care • ओल्ड की केयर",
     use_container_width=True,
     type="primary" if st.session_state.active_app_module == "elder" else "secondary",
     key="nav_btn_elder"
@@ -1524,12 +1537,14 @@ if st.sidebar.button(
     st.session_state.active_app_module = "elder"
     st.rerun()
 
-st.sidebar.markdown("<hr style='margin: 12px 0 18px 0; border: none; border-top: 1.5px solid #E2E8F0;'>", unsafe_allow_html=True)
+st.sidebar.markdown("<hr style='margin: 10px 0 16px 0; border: none; border-top: 1.5px solid #E2E8F0;'>", unsafe_allow_html=True)
 
 if st.session_state.active_app_module == "elder":
     exec(open("pages/2_Elder_Care_Help.py", encoding="utf-8").read(), globals())
     st.stop()
 # === MODE_SWITCH_END ===
+
+
 
 
 st.markdown(
