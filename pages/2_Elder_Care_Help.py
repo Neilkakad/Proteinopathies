@@ -121,16 +121,16 @@ st.markdown("""
     .q-title { font-size: 1.2rem; font-weight: 800; color: #0F172A; line-height: 1.55; text-align: center; }
     
     /* Force Streamlit Radio Container to Dead-Center in Both English & Hindi */
-    div[data-testid="stElementContainer"]:has(div[data-testid="stRadio"]),
-    div.element-container:has(div[data-testid="stRadio"]),
-    div[data-testid="stRadio"] {
+    section.main div[data-testid="stElementContainer"]:has(div[data-testid="stRadio"]),
+    section.main div.element-container:has(div[data-testid="stRadio"]),
+    section.main div[data-testid="stRadio"] {
         display: flex !important;
         justify-content: center !important;
         align-items: center !important;
         width: 100% !important;
         margin: 4px auto 14px auto !important;
     }
-    div[data-testid="stRadio"] > div[role="radiogroup"] {
+    section.main div[data-testid="stRadio"] > div[role="radiogroup"] {
         background: #EFF6FF !important;
         padding: 12px 32px !important;
         border-radius: 999px !important;
@@ -142,7 +142,7 @@ st.markdown("""
         margin: 0 auto !important;
         box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08) !important;
     }
-    div[data-testid="stRadio"] label { cursor: pointer !important; padding: 4px 10px !important; font-weight: 700 !important; }
+    section.main div[data-testid="stRadio"] label { cursor: pointer !important; padding: 4px 10px !important; font-weight: 700 !important; }
     audio { width: 100%; height: 42px; margin: 6px 0 12px 0; border-radius: 10px; }
 
     /* Calm, Motivating Report Banners (Never Scary) */

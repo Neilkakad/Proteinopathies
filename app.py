@@ -1469,10 +1469,69 @@ st.set_page_config(
 
 # === MODE_SWITCH_START ===
 import streamlit as st
-if st.sidebar.radio("🧭 Navigation / नेविगेशन", ["🧠 3D Clinical Atlas", "🤝 Elder Care Help (बुज़ुर्गों की देखभाल)"]) == "🤝 Elder Care Help (बुज़ुर्गों की देखभाल)":
+if 'active_app_module' not in st.session_state:
+    st.session_state.active_app_module = 'atlas'
+
+st.sidebar.markdown("""
+<style>
+    [data-testid="stSidebarNav"] { display: none !important; }
+    .nav-hdr {
+        font-family: 'Plus Jakarta Sans', -apple-system, sans-serif !important;
+        font-size: 1.35rem !important;
+        font-weight: 800 !important;
+        color: #0F172A !important;
+        letter-spacing: -0.02em !important;
+        margin: 0 0 4px 0 !important;
+    }
+    .nav-sub {
+        font-family: 'Plus Jakarta Sans', 'Noto Sans Devanagari', sans-serif !important;
+        font-size: 0.85rem !important;
+        font-weight: 600 !important;
+        color: #64748B !important;
+        margin: 0 0 12px 0 !important;
+    }
+    section[data-testid="stSidebar"] div.stButton > button {
+        width: 100% !important;
+        border-radius: 12px !important;
+        min-height: 46px !important;
+        padding: 0.55rem 0.9rem !important;
+        font-family: 'Plus Jakarta Sans', 'Noto Sans Devanagari', sans-serif !important;
+        font-size: 0.94rem !important;
+        font-weight: 700 !important;
+        margin-bottom: 6px !important;
+        transition: all 0.15s ease !important;
+    }
+</style>
+<div class="nav-hdr">Module Switcher</div>
+<div class="nav-sub">Select Clinical Workspace:</div>
+""", unsafe_allow_html=True)
+
+if st.sidebar.button(
+    "🧠 3D Clinical Atlas",
+    use_container_width=True,
+    type="primary" if st.session_state.active_app_module == "atlas" else "secondary",
+    key="nav_btn_atlas"
+):
+    st.session_state.active_app_module = "atlas"
+    st.rerun()
+
+if st.sidebar.button(
+    "🤝 Elder Care • बुज़ुर्ग देखभाल",
+    use_container_width=True,
+    type="primary" if st.session_state.active_app_module == "elder" else "secondary",
+    key="nav_btn_elder"
+):
+    st.session_state.active_app_module = "elder"
+    st.rerun()
+
+st.sidebar.markdown("<hr style='margin: 12px 0 18px 0; border: none; border-top: 1.5px solid #E2E8F0;'>", unsafe_allow_html=True)
+
+if st.session_state.active_app_module == "elder":
     exec(open("pages/2_Elder_Care_Help.py", encoding="utf-8").read(), globals())
     st.stop()
 # === MODE_SWITCH_END ===
+
+
 st.markdown(
     """
     <style>
