@@ -1477,7 +1477,7 @@ st.sidebar.markdown("""
     [data-testid="stSidebarNav"] { display: none !important; }
     .nav-hdr {
         font-family: 'Plus Jakarta Sans', -apple-system, sans-serif !important;
-        font-size: 1.25rem !important;
+        font-size: 1.2rem !important;
         font-weight: 800 !important;
         color: #0F172A !important;
         letter-spacing: -0.02em !important;
@@ -1485,21 +1485,23 @@ st.sidebar.markdown("""
     }
     .nav-sub {
         font-family: 'Plus Jakarta Sans', 'Noto Sans Devanagari', sans-serif !important;
-        font-size: 0.82rem !important;
+        font-size: 0.8rem !important;
         font-weight: 600 !important;
         color: #64748B !important;
-        margin: 0 c 12px 0 !important;
+        margin: 0 0 10px 0 !important;
     }
-    /* Sleek theme-matched sidebar buttons with no awkward wrapping */
+    /* Allow text wrapping and flexible height so text never overflows the button */
     section[data-testid="stSidebar"] div.stButton > button {
         width: 100% !important;
         border-radius: 14px !important;
-        min-height: 50px !important;
-        padding: 0.6rem 0.8rem !important;
+        min-height: 52px !important;
+        height: auto !important;
+        padding: 0.5rem 0.6rem !important;
         font-family: 'Plus Jakarta Sans', 'Noto Sans Devanagari', sans-serif !important;
-        font-size: 0.92rem !important;
+        font-size: 0.85rem !important;
         font-weight: 800 !important;
-        white-space: nowrap !important;
+        white-space: normal !important;
+        line-height: 1.3 !important;
         margin-bottom: 8px !important;
         transition: all 0.15s ease !important;
     }
@@ -1529,7 +1531,7 @@ if st.sidebar.button(
     st.rerun()
 
 if st.sidebar.button(
-    "🤝 Elder Care • ओल्ड की केयर",
+    "🤝 Elder Care • बुज़ुर्गों की देखभाल",
     use_container_width=True,
     type="primary" if st.session_state.active_app_module == "elder" else "secondary",
     key="nav_btn_elder"
@@ -1543,6 +1545,8 @@ if st.session_state.active_app_module == "elder":
     exec(open("pages/2_Elder_Care_Help.py", encoding="utf-8").read(), globals())
     st.stop()
 # === MODE_SWITCH_END ===
+
+
 
 
 
