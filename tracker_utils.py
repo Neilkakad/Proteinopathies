@@ -28,7 +28,6 @@ def get_total_screenings():
         return 0
 
 def log_screening_response(lang, age, report, answers_dict, pin_code, patient_name=""):
-    """Logs a completed screening immediately and increments the live counter."""
     init_csv()
     total_so_far = get_total_screenings() + 1
     case_id = f"SCR-{total_so_far:03d}"
@@ -61,22 +60,6 @@ def log_screening_response(lang, age, report, answers_dict, pin_code, patient_na
     except Exception:
         pass
 
-    webhook = GOOGLE_SHEET_WEBHOOK_URL or (st.secrets.get("SHEET_WEBHOOK_URL", "") if hasattr(st, "secrets") else "")
-    if webhook:
-        try:
-            import urllib.request
-            payload = json.dumps({
-                "case_id": case_id, "timestamp": now_str, "patient": clean_name,
-                "language": lang, "age": age, "ad8_score": report["ad8_score"],
-                "motor_score": c["motor"], "body_score": c["body"],
-                "total_flags": c["total"], "risk": risk_label,
-                "pin_code": pin_code, "flagged_codes": flagged_codes
-            }).encode("utf-8")
-            req = urllib.request.Request(webhook, data=payload, headers={"Content-Type": "application/json"})
-            urllib.request.urlopen(req, timeout=2.5)
-        except Exception:
-            pass
-
 def get_csv_bytes():
     init_csv()
     with open(CSV_PATH, "rb") as f:
@@ -86,8 +69,10 @@ def get_recent_records():
     init_csv()
     try:
         with open(CSV_PATH, "r", encoding="utf-8") as f:
-            rows = list(csv.reader(f))
-            return rows[0], rows[1:]
+            rows = [r for r in csv.reader(f) if any(cell.strip() for cell in r)]
+            if len(rows) > 1:
+                return rows[0], rows[1:]
+            return CSV_HEADERS, []
     except Exception:
         return CSV_HEADERS, []
 
@@ -197,7 +182,7 @@ def render_sidebar_tracker(key_suffix="main"):
                 use_container_width=True,
                 key=f"dl_csv_btn_{key_suffix}"
             )
-             headers, rows = get_recent_records()
+            headers, rows = get_recent_records()
             if rows:
                 st.caption("Latest Submissions:")
                 for r in rows[-5:][::-1]:
