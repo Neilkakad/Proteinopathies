@@ -1541,12 +1541,12 @@ if st.sidebar.button(
 
 st.sidebar.markdown("<hr style='margin: 10px 0 16px 0; border: none; border-top: 1.5px solid #E2E8F0;'>", unsafe_allow_html=True)
 
+if st.session_state.active_app_module != "elder":
+    from tracker_utils import render_sidebar_tracker
+    render_sidebar_tracker("atlas")
 if st.session_state.active_app_module == "elder":
     exec(open("pages/2_Elder_Care_Help.py", encoding="utf-8").read(), globals())
     st.stop()
-st.session_state['_tracker_rendered_this_run'] = False
-from tracker_utils import render_sidebar_tracker
-render_sidebar_tracker('app')
 # === MODE_SWITCH_END ===
 
 

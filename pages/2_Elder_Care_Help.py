@@ -820,7 +820,18 @@ def change_step(new_step, set_lang=None):
 
 force_scroll_to_top(st.session_state.screening_step, st.session_state.nav_count)
 try:
-    from tracker_utils import render_sidebar_tracker
+    from tracker_utils import render_sidebar_tracker, log_screening_response
+    if st.session_state.get('screening_step') == 'results' and not st.session_state.get('response_logged', False):
+        _rep = evaluate_screening(st.session_state.answers, st.session_state.age)
+        log_screening_response(
+            st.session_state.language,
+            st.session_state.age,
+            _rep,
+            st.session_state.answers,
+            st.session_state.get('pin_input', ''),
+            st.session_state.get('patient_name', '')
+        )
+        st.session_state.response_logged = True
     render_sidebar_tracker('page')
 except Exception:
     pass
@@ -975,13 +986,6 @@ elif st.session_state.screening_step == 'results':
         plan = get_age_and_rural_urban_plan(age, lang)
         voice_bytes = get_Dynamic_Result_Voice(report['voice_hi'] if lang == 'hi' else report['voice_en'], lang, tag='res_calm_v140')
         dossier_html = build_doctor_dossier_html(report, st.session_state.answers, lang)
-        if not st.session_state.get('response_logged', False):
-            try:
-                from tracker_utils import log_screening_response
-                log_screening_response(lang, age, report, st.session_state.answers, st.session_state.pin_input, st.session_state.get('patient_name', ''))
-                st.session_state.response_logged = True
-            except Exception:
-                pass
         initial_pin_data = None
         if report['moderate_to_high_risk'] and len(st.session_state.pin_input.strip()) == 6 and st.session_state.pin_input.strip().isdigit():
             initial_pin_data = lookup_india_pincode_and_clinics(st.session_state.pin_input)
