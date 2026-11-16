@@ -6,22 +6,54 @@ CSV_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "screening_r
 ADMIN_PASSCODE = "neil2026"
 GOOGLE_SHEET_WEBHOOK_URL = ""
 
+# Clean, human-readable typography headers (no ugly underscores)
 CSV_HEADERS = [
-    "Case_ID", "Timestamp", "Patient_Name_or_Initials", "Language", "Patient_Age",
-    "Memory_Score_AD8", "Movement_Score", "Body_Vitamin_Score", "Total_Flags",
-    "Risk_Category", "PIN_Code", "Flagged_Codes"
+    "Case ID",
+    "Date & Time",
+    "Patient Name / Initials",
+    "Screening Language",
+    "Patient Age",
+    "Memory Score (AD8)",
+    "Movement & Balance",
+    "Physical & Nutrition",
+    "Total Observations",
+    "Clinical Recommendation",
+    "Postal PIN Code",
+    "Flagged Clinical Areas"
 ]
 
 def init_csv():
+    """Ensures CSV exists and upgrades old underscore headers automatically."""
     if not os.path.exists(CSV_PATH):
-        with open(CSV_PATH, "w", newline="", encoding="utf-8") as f:
+        with open(CSV_PATH, "w", newline="", encoding="utf-8-sig") as f:
             writer = csv.writer(f)
             writer.writerow(CSV_HEADERS)
+        return
+
+    try:
+        with open(CSV_PATH, "r", encoding="utf-8-sig") as f:
+            rows = [r for r in csv.reader(f) if any(cell.strip() for cell in r)]
+        if not rows or rows[0] != CSV_HEADERS:
+            data_rows = rows[1:] if rows else []
+            upgraded_rows = []
+            for idx, r in enumerate(data_rows, 1):
+                if len(r) == 10:
+                    # Migrate old 10-column row to new 12-column format
+                    cid = f"SCR-{idx:03d}"
+                    upgraded_rows.append([cid, r[0], f"Anonymous ({cid})", r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8], r[9]])
+                elif len(r) >= 12:
+                    upgraded_rows.append(r[:12])
+            with open(CSV_PATH, "w", newline="", encoding="utf-8-sig") as f:
+                writer = csv.writer(f)
+                writer.writerow(CSV_HEADERS)
+                writer.writerows(upgraded_rows)
+    except Exception:
+        pass
 
 def get_total_screenings():
     init_csv()
     try:
-        with open(CSV_PATH, "r", encoding="utf-8") as f:
+        with open(CSV_PATH, "r", encoding="utf-8-sig") as f:
             rows = [r for r in csv.reader(f) if any(cell.strip() for cell in r)]
             return max(0, len(rows) - 1)
     except Exception:
@@ -34,27 +66,32 @@ def log_screening_response(lang, age, report, answers_dict, pin_code, patient_na
     clean_name = patient_name.strip() if patient_name and patient_name.strip() else f"Anonymous ({case_id})"
 
     c = report["counts"]
-    flagged_codes = ", ".join([it["code"] for it in report.get("checked_items", [])]) or "None"
-    risk_label = "Doctor Evaluation Advised" if report.get("moderate_to_high_risk") else "Normal / Low Risk"
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    checked = report.get("checked_items", [])
+    if checked:
+        flagged_desc = "; ".join([f"{it['code']} ({it.get('label_en', it['code'])[:28]})" for it in checked])
+    else:
+        flagged_desc = "No warning signs flagged"
+
+    risk_label = "Clinical Evaluation Advised" if report.get("moderate_to_high_risk") else "Within Normal Healthy Range"
+    now_str = datetime.now().strftime("%d %b %Y, %I:%M %p")
 
     row = [
         case_id,
         now_str,
         clean_name,
-        "Hindi" if lang == "hi" else "English",
-        age,
-        f"{report['ad8_score']}/8",
-        f"{c['motor']}/4",
-        f"{c['body']}/3",
-        c["total"],
+        "Hindi (हिंदी)" if lang == "hi" else "English",
+        f"{age} yrs",
+        f"{report['ad8_score']} / 8",
+        f"{c['motor']} / 4",
+        f"{c['body']} / 3",
+        f"{c['total']} / 15",
         risk_label,
-        pin_code or "N/A",
-        flagged_codes
+        pin_code.strip() if pin_code and pin_code.strip() else "Not Provided",
+        flagged_desc
     ]
 
     try:
-        with open(CSV_PATH, "a", newline="", encoding="utf-8") as f:
+        with open(CSV_PATH, "a", newline="", encoding="utf-8-sig") as f:
             writer = csv.writer(f)
             writer.writerow(row)
     except Exception:
@@ -68,13 +105,182 @@ def get_csv_bytes():
 def get_recent_records():
     init_csv()
     try:
-        with open(CSV_PATH, "r", encoding="utf-8") as f:
+        with open(CSV_PATH, "r", encoding="utf-8-sig") as f:
             rows = [r for r in csv.reader(f) if any(cell.strip() for cell in r)]
             if len(rows) > 1:
                 return rows[0], rows[1:]
             return CSV_HEADERS, []
     except Exception:
         return CSV_HEADERS, []
+
+def get_styled_html_report():
+    headers, rows = get_recent_records()
+    total = len(rows)
+    high_risk = sum(1 for r in rows if len(r) > 9 and "Advised" in r[9])
+    normal_cnt = total - high_risk
+
+    trs = ""
+    for r in rows[::-1]:
+        if len(r) < 12:
+            continue
+        is_adv = "Advised" in r[9]
+        badge_bg = "#FEE2E2" if is_adv else "#DCFCE7"
+        badge_fg = "#991B1B" if is_adv else "#166534"
+        trs += f"""
+        <tr>
+            <td style="font-weight:800; color:#1E3A8A; white-space:nowrap;">{r[0]}</td>
+            <td style="color:#475569; white-space:nowrap;">{r[1]}</td>
+            <td style="font-weight:700; color:#0F172A;">{r[2]}</td>
+            <td>{r[3]}</td>
+            <td style="font-weight:700;">{r[4]}</td>
+            <td style="font-weight:800; color:#1D4ED8;">{r[5]}</td>
+            <td>{r[6]}</td>
+            <td>{r[7]}</td>
+            <td style="font-weight:700;">{r[8]}</td>
+            <td><span style="background:{badge_bg}; color:{badge_fg}; font-weight:800; padding:4px 10px; border-radius:999px; font-size:0.78rem; white-space:nowrap;">{r[9]}</span></td>
+            <td>{r[10]}</td>
+            <td style="font-size:0.82rem; color:#334155; max-width:260px;">{r[11]}</td>
+        </tr>"""
+
+    if not trs:
+        trs = '<tr><td colspan="12" style="text-align:center; padding:28px; color:#64748B; font-weight:600;">No screenings recorded yet. Complete a screening in the app to populate this registry.</td></tr>'
+
+    html = f"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Community Brain Health Screening Registry</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+    body {{
+        font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+        background: #F8FAFC;
+        color: #0F172A;
+        margin: 0;
+        padding: 36px;
+    }}
+    .wrap {{
+        max-width: 1320px;
+        margin: 0 auto;
+        background: #FFFFFF;
+        border: 1.5px solid #E2E8F0;
+        border-radius: 20px;
+        padding: 32px;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+    }}
+    .hdr {{
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        border-bottom: 2px solid #E2E8F0;
+        padding-bottom: 20px;
+        margin-bottom: 24px;
+    }}
+    .eyebrow {{
+        font-size: 0.75rem;
+        font-weight: 800;
+        color: #2563EB;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 6px;
+    }}
+    h1 {{
+        font-size: 1.75rem;
+        font-weight: 800;
+        margin: 0;
+        color: #0F172A;
+        letter-spacing: -0.02em;
+    }}
+    .stats {{
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-bottom: 28px;
+    }}
+    .stat-card {{
+        background: #F8FAFC;
+        border: 1.5px solid #E2E8F0;
+        border-radius: 14px;
+        padding: 16px 20px;
+    }}
+    .stat-lbl {{
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }}
+    .stat-val {{
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: #0F172A;
+        margin-top: 4px;
+    }}
+    table {{
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.88rem;
+    }}
+    th {{
+        background: #0F172A;
+        color: #FFFFFF;
+        font-weight: 700;
+        text-align: left;
+        padding: 12px 14px;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }}
+    td {{
+        padding: 12px 14px;
+        border-bottom: 1px solid #E2E8F0;
+        vertical-align: middle;
+    }}
+    tr:nth-child(even) td {{
+        background: #F8FAFC;
+    }}
+</style>
+</head>
+<body>
+<div class="wrap">
+    <div class="hdr">
+        <div>
+            <div class="eyebrow">Neurogenetics & Elder Care Initiative</div>
+            <h1>Community Brain Health & AD8 Screening Registry</h1>
+        </div>
+        <div style="text-align:right; font-size:0.85rem; color:#475569; font-weight:600;">
+            Generated: {datetime.now().strftime("%d %b %Y, %I:%M %p")}<br>
+            Target Cohort Goal: 100 Families
+        </div>
+    </div>
+    <div class="stats">
+        <div class="stat-card">
+            <div class="stat-lbl">Total Families Screened</div>
+            <div class="stat-val" style="color:#2563EB;">{total} / 100</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-lbl">Clinical Evaluation Advised</div>
+            <div class="stat-val" style="color:#DC2626;">{high_risk}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-lbl">Within Healthy Baseline</div>
+            <div class="stat-val" style="color:#16A34A;">{normal_cnt}</div>
+        </div>
+    </div>
+    <div style="overflow-x:auto;">
+        <table>
+            <thead>
+                <tr>{"".join(f"<th>{h}</th>" for h in CSV_HEADERS)}</tr>
+            </thead>
+            <tbody>
+                {trs}
+            </tbody>
+        </table>
+    </div>
+</div>
+</body>
+</html>"""
+    return html.encode("utf-8")
 
 def render_sidebar_tracker(key_suffix="main"):
     total = get_total_screenings()
@@ -175,7 +381,15 @@ def render_sidebar_tracker(key_suffix="main"):
         if st.session_state.admin_unlocked:
             st.success(f"Unlocked • {total} Saved")
             st.download_button(
-                label="📥 Download CSV Log",
+                label="📄 Styled Clinical Registry (.HTML)",
+                data=get_styled_html_report(),
+                file_name="community_screening_registry.html",
+                mime="text/html",
+                use_container_width=True,
+                key=f"dl_html_btn_{key_suffix}"
+            )
+            st.download_button(
+                label="📊 Clean Spreadsheet (.CSV)",
                 data=get_csv_bytes(),
                 file_name="elder_care_screening_responses.csv",
                 mime="text/csv",
@@ -186,4 +400,5 @@ def render_sidebar_tracker(key_suffix="main"):
             if rows:
                 st.caption("Latest Submissions:")
                 for r in rows[-5:][::-1]:
-                    st.markdown(f"- **{r[2]}** (Age {r[4]}) • `{r[5]}`")
+                    if len(r) >= 6:
+                        st.markdown(f"- **{r[2]}** ({r[4]}) • `{r[5]}`")
