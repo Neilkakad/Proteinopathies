@@ -1544,6 +1544,8 @@ st.sidebar.markdown("<hr style='margin: 10px 0 16px 0; border: none; border-top:
 if st.session_state.active_app_module == "elder":
     exec(open("pages/2_Elder_Care_Help.py", encoding="utf-8").read(), globals())
     st.stop()
+from tracker_utils import render_sidebar_tracker
+render_sidebar_tracker()
 # === MODE_SWITCH_END ===
 
 
