@@ -821,7 +821,7 @@ def change_step(new_step, set_lang=None):
 force_scroll_to_top(st.session_state.screening_step, st.session_state.nav_count)
 try:
     from tracker_utils import render_sidebar_tracker
-    render_sidebar_tracker()
+    render_sidebar_tracker('page')
 except Exception:
     pass
 
@@ -978,7 +978,7 @@ elif st.session_state.screening_step == 'results':
         if not st.session_state.get('response_logged', False):
             try:
                 from tracker_utils import log_screening_response
-                log_screening_response(lang, age, report, st.session_state.answers, st.session_state.pin_input)
+                log_screening_response(lang, age, report, st.session_state.answers, st.session_state.pin_input, st.session_state.get('patient_name', ''))
                 st.session_state.response_logged = True
             except Exception:
                 pass
