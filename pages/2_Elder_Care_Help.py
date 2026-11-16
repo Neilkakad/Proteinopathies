@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import streamlit as st
 import streamlit.components.v1 as components
 import os, subprocess, sys, hashlib, json, urllib.request, urllib.parse, ssl, re
@@ -737,7 +738,7 @@ def build_doctor_dossier_html(report, answers_dict, lang):
     <div class="header">
         <div>
             <div class="tag">{'ELDER CARE CLINICAL REPORT' if lang=='en' else 'बुज़ुर्ग स्वास्थ्य एवं याददाश्त रिपोर्ट'}</div>
-            <h1 class="title">{doc_title}</h1><div style='background:#EFF6FF; border:1.5px solid #93C5FD; border-radius:10px; padding:10px 16px; margin:12px 0; font-family:sans-serif; font-size:14px; font-weight:800; color:#1E3A8A;'>👤 Patient Name / मरीज़ का नाम: {st.session_state.get('patient_name', '').strip() or ('Anonymous' if lang == 'en' else 'अनाम')}</div>
+            <h1 class="title">{doc_title}</h1><div style='background:#EFF6FF; border:1.5px solid #93C5FD; border-radius:10px; padding:10px 16px; margin:12px 0; font-family:sans-serif; font-size:14px; font-weight:800; color:#1E3A8A;'>👤 {' मरीज़ का नाम: ' if lang == 'hi' else 'Patient Name: '}{st.session_state.get('patient_name', '').strip() or ('अनाम' if lang == 'hi' else 'Anonymous')}  |  {'उम्र: ' if lang == 'hi' else 'Age: '}{st.session_state.get('patient_age', 68)} {'वर्ष' if lang == 'hi' else 'Yrs'}</div>
             <p class="sub">{doc_sub}</p>
         </div>
         <button class="print-btn" onclick="window.print()">🖨️ {'Print / Save as PDF' if lang=='en' else 'प्रिंट करें / PDF सेव करें'}</button>
@@ -805,7 +806,7 @@ def build_doctor_dossier_html(report, answers_dict, lang):
 
 if 'lang' not in st.session_state: st.session_state.lang = None
 if 'screening_step' not in st.session_state: st.session_state.screening_step = 'language_selection'
-if 'answers' not in st.session_state: st.session_state.answers = {}; st.session_state.response_logged = False; st.session_state.name_saved = False
+if 'answers' not in st.session_state: st.session_state.answers = {}; st.session_state.response_logged = False; st.session_state.name_confirmed = False
 if 'patient_age' not in st.session_state: st.session_state.patient_age = 68
 if 'pin_input' not in st.session_state: st.session_state.pin_input = '400071'
 if 'nav_count' not in st.session_state: st.session_state.nav_count = 0
@@ -824,16 +825,19 @@ if _root_dir not in _sys.path:
     _sys.path.insert(0, _root_dir)
 from tracker_utils import render_sidebar_tracker, log_screening_response  # type: ignore
 
-if "patient_name" not in st.session_state or st.session_state.get("patient_name") in ("आवाज़ द्वारा दर्ज (Voice)", "Voice Recorded Patient"):
-    if st.session_state.get("patient_name") in ("आवाज़ द्वारा दर्ज (Voice)", "Voice Recorded Patient"):
-        st.session_state.patient_name = ""
-    elif "patient_name" not in st.session_state:
-        st.session_state.patient_name = ""
+if "patient_name" not in st.session_state:
+    st.session_state.patient_name = ""
+if "name_confirmed" not in st.session_state:
+    st.session_state.name_confirmed = False
 
-# Detect the active language accurately (checks both `lang` and `language` in session_state)
 _active_lang = st.session_state.get("lang", st.session_state.get("language", "hi"))
+_cur_step = str(st.session_state.get("screening_step", "language_selection"))
+_disp_age = st.session_state.get("patient_age", st.session_state.get("age", 68))
 
-# Styling for the Name Card & Dark Mode support
+if _cur_step == "language_selection":
+    st.session_state.name_confirmed = False
+
+# Dark Mode & Name Card CSS
 st.markdown("""
 <style>
 .name-q-card {
@@ -924,53 +928,42 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# SEPARATE HINDI AND ENGLISH NAME INTERFACES (Only shows full input on first step before saving; collapses once saved!)
-if "name_saved" not in st.session_state:
-    st.session_state.name_saved = False
-
-_cur_step = str(st.session_state.get("screening_step", ""))
-# Detect if the user is on the very first step after language selection (e.g., age_selection or step 1)
-_is_first_page = _cur_step in ("age_selection", "step1", "step_1", "body", "step1_body", "questions") or ("1" in _cur_step) or ("age" in _cur_step)
+# Check if the user is on Question Pages 2 or 3 (where ONLY the top banner should ever appear)
+_is_later_q_page = any(k in _cur_step.lower() for k in ("2", "3", "mem", "ad8", "motor", "mov"))
 
 if _cur_step not in ("language_selection", "results"):
-    # Auto-collapse if they already typed a name and moved past the first page
-    if st.session_state.get("patient_name", "").strip() and not _is_first_page:
-        st.session_state.name_saved = True
-
-    if st.session_state.name_saved and st.session_state.get("patient_name", "").strip():
-        # Compact 1-line saved pill so the big box doesn't repeat on Page 1, 2, 3!
-        _c_pill, _c_edit = st.columns([4.5, 1])
-        with _c_pill:
-            if _active_lang == "hi":
-                st.markdown(
-                    f"<div style='background:#EFF6FF; border:1.5px solid #93C5FD; border-radius:12px; padding:8px 16px; margin:4px 0 12px 0; font-size:0.95rem; font-weight:800; color:#1E3A8A; display:flex; align-items:center; justify-content:space-between;'>"
-                    f"<span>👤 मरीज़ का नाम: <b>{st.session_state.patient_name}</b></span>"
-                    f"<span style='font-size:0.78rem; color:#16A34A; background:#DCFCE7; padding:2px 8px; border-radius:999px;'>✅ सेव किया गया</span></div>",
-                    unsafe_allow_html=True
-                )
-            else:
-                st.markdown(
-                    f"<div style='background:#EFF6FF; border:1.5px solid #93C5FD; border-radius:12px; padding:8px 16px; margin:4px 0 12px 0; font-size:0.95rem; font-weight:800; color:#1E3A8A; display:flex; align-items:center; justify-content:space-between;'>"
-                    f"<span>👤 Patient Name: <b>{st.session_state.patient_name}</b></span>"
-                    f"<span style='font-size:0.78rem; color:#16A34A; background:#DCFCE7; padding:2px 8px; border-radius:999px;'>✅ Saved</span></div>",
-                    unsafe_allow_html=True
-                )
-        with _c_edit:
-            if st.button("✏️ बदलें" if _active_lang == "hi" else "✏️ Edit", use_container_width=True, key="edit_saved_name_btn"):
-                st.session_state.name_saved = False
-                st.rerun()
-
-    elif _is_first_page or not st.session_state.get("patient_name", "").strip():
+    if st.session_state.name_confirmed or _is_later_q_page:
+        # ONLY show the clean Top Banner with Patient Name & Age on Pages 1, 2, and 3!
+        if _active_lang == "hi":
+            _b_nm = st.session_state.get("patient_name", "").strip() or "अनाम मरीज़"
+            st.markdown(
+                f"<div style='background:linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%); color:#FFFFFF; border-radius:14px; padding:12px 20px; margin:4px 0 16px 0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; box-shadow:0 4px 14px rgba(37,99,235,0.18);'>"
+                f"<div style='font-size:1.1rem; font-weight:800; color:#FFFFFF;'>👤 मरीज़ का नाम: <span style='color:#FDE047;'>{_b_nm}</span>  |  🎂 उम्र: <span style='color:#DBEAFE;'>{_disp_age} वर्ष</span></div>"
+                f"<div style='background:rgba(255,255,255,0.18); padding:4px 12px; border-radius:999px; font-size:0.78rem; font-weight:800; color:#FFFFFF;'>✅ नाम व उम्र सेव है</div>"
+                f"</div>",
+                unsafe_allow_html=True
+            )
+        else:
+            _b_nm = st.session_state.get("patient_name", "").strip() or "Anonymous Patient"
+            st.markdown(
+                f"<div style='background:linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%); color:#FFFFFF; border-radius:14px; padding:12px 20px; margin:4px 0 16px 0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; box-shadow:0 4px 14px rgba(37,99,235,0.18);'>"
+                f"<div style='font-size:1.1rem; font-weight:800; color:#FFFFFF;'>👤 Patient Name: <span style='color:#FDE047;'>{_b_nm}</span>  |  🎂 Age: <span style='color:#DBEAFE;'>{_disp_age} Years</span></div>"
+                f"<div style='background:rgba(255,255,255,0.18); padding:4px 12px; border-radius:999px; font-size:0.78rem; font-weight:800; color:#FFFFFF;'>✅ Profile Saved</div>"
+                f"</div>",
+                unsafe_allow_html=True
+            )
+    else:
+        # Show the Name Input + Audio Explanation ONCE before name_confirmed is set
         if _active_lang == "hi":
             st.markdown("""
             <div class="name-q-card">
                 <span class="name-q-badge">👤 मरीज़ की पहचान</span>
                 <div class="name-q-title">कृपया यहाँ मरीज़ का नाम (या इनिशियल्स) लिखें</div>
-                <div class="name-q-sub">नीचे दिए गए बॉक्स में नाम लिखकर 'नाम सेव करें' दबाएँ। यह नाम आपकी फाइनल रिपोर्ट और डॉक्टर की रिपोर्ट पर लिखा आएगा।</div>
+                <div class="name-q-sub">नीचे दिए गए बॉक्स में नाम लिखकर 'नाम सेव करें' दबाएँ। इसके बाद हर पेज पर ऊपर सिर्फ़ आपका नाम और उम्र का बैनर दिखेगा।</div>
             </div>
             """, unsafe_allow_html=True)
 
-            _c_in, _c_btn = st.columns([2.6, 1])
+            _c_in, _c_btn = st.columns([2.4, 1.2])
             with _c_in:
                 _typed_hi = st.text_input(
                     "यहाँ अपना नाम लिखें:",
@@ -982,12 +975,11 @@ if _cur_step not in ("language_selection", "results"):
                 st.session_state.patient_name = _typed_hi
             with _c_btn:
                 if st.button("✅ नाम सेव करें", use_container_width=True, type="primary", key="save_name_hi_btn"):
-                    if st.session_state.patient_name.strip():
-                        st.session_state.name_saved = True
-                        st.rerun()
+                    st.session_state.name_confirmed = True
+                    st.rerun()
 
             _hi_voice_guide = get_Dynamic_Result_Voice(
-                "कृपया यहाँ ऊपर दिए गए बॉक्स में मरीज़ का नाम या इनिशियल्स लिखें। यह नाम आपकी फाइनल रिपोर्ट में लिखा आएगा।",
+                "कृपया यहाँ ऊपर दिए गए बॉक्स में मरीज़ का नाम या इनिशियल्स लिखें और नाम सेव करें बटन दबाएँ। यह नाम आपकी फाइनल रिपोर्ट में लिखा आएगा।",
                 "hi"
             )
             if _hi_voice_guide:
@@ -998,11 +990,11 @@ if _cur_step not in ("language_selection", "results"):
             <div class="name-q-card">
                 <span class="name-q-badge">👤 Patient Identification</span>
                 <div class="name-q-title">Please write the patient's name (or initials) over here</div>
-                <div class="name-q-sub">Enter the name in the box below and click 'Save Name'. This name will appear on your Final Summary and Printable Doctor Report.</div>
+                <div class="name-q-sub">Enter the name in the box below and click 'Save Name'. Across pages 1, 2, and 3, only a clean top banner with the patient's name and age will be displayed.</div>
             </div>
             """, unsafe_allow_html=True)
 
-            _c_in_en, _c_btn_en = st.columns([2.6, 1])
+            _c_in_en, _c_btn_en = st.columns([2.4, 1.2])
             with _c_in_en:
                 _typed_en = st.text_input(
                     "Write your name over here:",
@@ -1014,12 +1006,11 @@ if _cur_step not in ("language_selection", "results"):
                 st.session_state.patient_name = _typed_en
             with _c_btn_en:
                 if st.button("✅ Save Name", use_container_width=True, type="primary", key="save_name_en_btn"):
-                    if st.session_state.patient_name.strip():
-                        st.session_state.name_saved = True
-                        st.rerun()
+                    st.session_state.name_confirmed = True
+                    st.rerun()
 
             _en_voice_guide = get_Dynamic_Result_Voice(
-                "Please write the patient's name or initials over here in the box above. This name will appear on your final report.",
+                "Please write the patient's name or initials over here in the box above and click Save Name. This name will appear on your final report.",
                 "en"
             )
             if _en_voice_guide:
@@ -1027,15 +1018,14 @@ if _cur_step not in ("language_selection", "results"):
 
         st.markdown("<hr style='margin: 12px 0 20px 0; border:none; border-top:1.5px solid #CBD5E1;'>", unsafe_allow_html=True)
 
-# Top-of-page Patient Profile Banner on Final Results page (Pure Hindi in Hindi mode, Pure English in English mode)
-if st.session_state.get("screening_step") == "results":
-    _disp_age = st.session_state.get("patient_age", st.session_state.get("age", 68))
+# Top-of-page Patient Profile Banner on Final Results page (Both Hindi and English)
+if _cur_step == "results":
     if _active_lang == "hi":
         _disp_name = st.session_state.get("patient_name", "").strip() or "अनाम मरीज़"
         st.markdown(
             f"<div class='patient-id-card' style='background:linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%); color:#FFFFFF; border-radius:16px; padding:18px 24px; margin:8px 0 18px 0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; box-shadow:0 6px 18px rgba(37,99,235,0.22);'>"
             f"<div><div style='font-size:0.78rem; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:#BFDBFE;'>📋 आधिकारिक स्क्रीनिंग रिपोर्ट • मरीज़ का विवरण</div>"
-            f"<div style='font-size:1.45rem; font-weight:800; color:#FFFFFF; margin-top:4px;'>👤 मरीज़ का नाम: {_disp_name} <span style='font-size:1rem; font-weight:600; color:#DBEAFE;'>({_disp_age} वर्ष)</span></div></div>"
+            f"<div style='font-size:1.45rem; font-weight:800; color:#FFFFFF; margin-top:4px;'>👤 मरीज़ का नाम: {_disp_name}  |  🎂 उम्र: {_disp_age} वर्ष</div></div>"
             f"<div style='background:rgba(255,255,255,0.18); padding:6px 14px; border-radius:999px; font-size:0.84rem; font-weight:800; color:#FFFFFF;'>✅ रिकॉर्ड में सुरक्षित</div></div>",
             unsafe_allow_html=True
         )
@@ -1044,7 +1034,7 @@ if st.session_state.get("screening_step") == "results":
         st.markdown(
             f"<div class='patient-id-card' style='background:linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%); color:#FFFFFF; border-radius:16px; padding:18px 24px; margin:8px 0 18px 0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; box-shadow:0 6px 18px rgba(37,99,235,0.22);'>"
             f"<div><div style='font-size:0.78rem; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:#BFDBFE;'>📋 OFFICIAL SCREENING REPORT • PATIENT PROFILE</div>"
-            f"<div style='font-size:1.45rem; font-weight:800; color:#FFFFFF; margin-top:4px;'>👤 Patient Name: {_disp_name} <span style='font-size:1rem; font-weight:600; color:#DBEAFE;'>({_disp_age} Years Old)</span></div></div>"
+            f"<div style='font-size:1.45rem; font-weight:800; color:#FFFFFF; margin-top:4px;'>👤 Patient Name: {_disp_name}  |  🎂 Age: {_disp_age} Years</div></div>"
             f"<div style='background:rgba(255,255,255,0.18); padding:6px 14px; border-radius:999px; font-size:0.84rem; font-weight:800; color:#FFFFFF;'>✅ Saved to Patient Registry</div></div>",
             unsafe_allow_html=True
         )
@@ -1217,7 +1207,7 @@ elif st.session_state.screening_step == 'results':
                 for k in list(st.session_state.keys()):
                     if str(k).startswith('rad_'):
                         del st.session_state[k]
-                st.session_state.answers = {}; st.session_state.response_logged = False; st.session_state.name_saved = False
+                st.session_state.answers = {}; st.session_state.response_logged = False; st.session_state.name_confirmed = False
                 change_step('language_selection')
                 st.rerun()
 
@@ -1397,27 +1387,16 @@ elif st.session_state.screening_step == 'results':
             </div>
             """, unsafe_allow_html=True)
 
-            # Voice Audio Explanation for Diet, Dry Fruits & Daily Exercise Chart
-            _diet_speech_hi = (
-                f"दिमागी पोषण और दैनिक व्यायाम की सलाह: {st.session_state.get('patient_name', '')} जी की उम्र {age} वर्ष और स्वास्थ्य रिपोर्ट के अनुसार, "
-                f"रोज़ सुबह 4 से 5 भीगे और छिले हुए बादाम, 2 अखरोट की गिरी, 2 भीगी मुनक्का, और 1 चम्मच भुनी अलसी या कद्दू के बीज ज़रूर दें। "
-                f"खाने में रागी, बाजरा या ज्वार की रोटी, भुना मखाना, सहजन, हरी पत्तेदार सब्ज़ियाँ, दलिया, ओट्स, पनीर, दालें और रात को चुटकी भर हल्दी वाला गुनगुना दूध शामिल करें। "
-                f"पैकेट वाले नमकीन-बिस्किट से बचें और साल में एक बार विटामिन बी-12, डी-3, शुगर और बीपी की जाँच करवाएँ। "
-                f"रोज़ सुबह की हल्की धूप में 20 मिनट आराम से टहलें, कुर्सी पर बैठकर पैरों, घुटनों और कलाई को घुमाने की कसरत करें, और शाम को परिवार के साथ बैठकर बातचीत करें।"
-            )
-            _diet_speech_en = (
-                f"Brain Nutrition, Dry Fruits, and Daily Exercise Plan tailored for age {age} years: "
-                f"Every morning, give 4 to 5 soaked and peeled almonds, 2 walnut halves, 2 soaked raisins, and 1 spoon of roasted flax or pumpkin seeds. "
-                f"For daily meals, include ragi or millet rotis, roasted foxnuts, moringa, leafy greens, oats, paneer, lentils, and warm turmeric milk at night, while avoiding packaged salty or sugary snacks. "
-                f"Check Vitamin B12, Vitamin D3, blood sugar, and blood pressure once a year. "
-                f"For daily exercise, take a gentle 20-minute morning walk in mild sunlight, practice seated ankle, knee, and wrist rotations, and spend time in active evening family conversation."
-            )
-            _diet_lbl = "🔊 खान-पान, सूखे मेवे और रोज़ की कसरत की पूरी सलाह सुनें (Audio Guide):" if lang == 'hi' else "🔊 Listen to the Spoken Diet, Dry Fruits & Daily Exercise Plan (Audio Guide):"
-            st.markdown(f"<div style='background:#ECFDF5; border:1.5px solid #6EE7B7; border-radius:12px; padding:10px 16px; margin:8px 0 6px 0; font-size:0.95rem; font-weight:800; color:#065F46;'>{_diet_lbl}</div>", unsafe_allow_html=True)
-            diet_chart_voice_audio = get_Dynamic_Result_Voice(_diet_speech_hi if lang == 'hi' else _diet_speech_en, lang)
-            if diet_chart_voice_audio:
-                st.audio(diet_chart_voice_audio, format='audio/mp3')
-                        w1, w2 = st.columns(2, gap='medium')
+            _d_name_en = st.session_state.get('patient_name', '').strip() or 'the patient'
+            _d_name_hi = st.session_state.get('patient_name', '').strip() or 'मरीज़'
+            _diet_txt_hi = f'दिमागी पोषण और दैनिक व्यायाम की सलाह: {_d_name_hi} की उम्र {age} वर्ष के अनुसार, रोज़ सुबह 4 से 5 भीगे बादाम, 2 अखरोट की गिरी, 2 भीगी मुनक्का, और 1 चम्मच भुनी अलसी या कद्दू के बीज दें। खाने में रागी, बाजरा, मखाना, हरी सब्ज़ियाँ, दलिया, ओट्स, पनीर, दालें और रात को हल्दी वाला गुनगुना दूध दें। रोज़ सुबह हल्की धूप में 20 मिनट टहलें, कुर्सी पर बैठकर पैरों, घुटनों और कलाई की कसरत करें, और परिवार के साथ बातचीत करें।'
+            _diet_txt_en = f'Brain Nutrition, Dry Fruits, and Daily Exercise Plan for {_d_name_en} (Age {age} years): Every morning, give 4 to 5 soaked and peeled almonds, 2 walnut halves, 2 soaked raisins, and 1 spoon of roasted flax or pumpkin seeds. Include ragi or millet rotis, roasted foxnuts, leafy greens, oats, paneer, lentils, and warm turmeric milk at night, and check Vitamin B12 and D3 annually. Practice a 20-minute morning walk in mild sunlight, seated ankle, knee, and wrist exercises, and evening family conversation.'
+            _diet_hdr = '🔊 खान-पान, सूखे मेवे और रोज़ की कसरत की पूरी सलाह सुनें (Audio Guide):' if lang == 'hi' else '🔊 Listen to the Spoken Diet, Dry Fruits & Daily Exercise Plan (Audio Guide):'
+            st.markdown(f"<div style='background:#ECFDF5; border:1.5px solid #6EE7B7; border-radius:12px; padding:10px 16px; margin:10px 0 6px 0; font-size:0.95rem; font-weight:800; color:#065F46;'>{_diet_hdr}</div>", unsafe_allow_html=True)
+            _diet_mp3 = get_Dynamic_Result_Voice(_diet_txt_hi if lang == 'hi' else _diet_txt_en, lang)
+            if _diet_mp3:
+                st.audio(_diet_mp3, format='audio/mp3')
+            w1, w2 = st.columns(2, gap='medium')
             with w1:
                 st.markdown(f"""
                 <div class='wellness-col-card'>
