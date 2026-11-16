@@ -802,6 +802,11 @@ def build_doctor_dossier_html(report, answers_dict, lang):
 </div>
 </body>
 </html>"""
+    # PATIENT_NAME_IN_DOSSIER
+    _pn = st.session_state.get('patient_name', '').strip() or ('Anonymous' if lang == 'en' else 'अनाम')
+    _pa = st.session_state.get('age', 68)
+    _banner = f"<div style='background:#EFF6FF; border:1.5px solid #93C5FD; border-radius:10px; padding:10px 16px; margin:12px 0; font-family:sans-serif; font-size:14px; font-weight:800; color:#1E3A8A;'>👤 Patient Name / मरीज़ का नाम: {_pn}  •  Age / उम्र: {_pa} Yrs</div>"
+    html = html.replace("</h1>", "</h1>" + _banner, 1)
     return html
 
 if 'lang' not in st.session_state: st.session_state.lang = None
@@ -820,7 +825,8 @@ def change_step(new_step, set_lang=None):
     st.session_state.nav_count = st.session_state.get('nav_count', 0) + 1
 
 force_scroll_to_top(st.session_state.screening_step, st.session_state.nav_count)
-from tracker_utils import render_sidebar_tracker, log_screening_response
+import sys as _sys; _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__))); (_sys.path.insert(0, _root) if _root not in _sys.path else None)
+from tracker_utils import render_sidebar_tracker, log_screening_response  # type: ignore
 if st.session_state.get('screening_step') == 'results' and not st.session_state.get('response_logged', False):
     _rep = evaluate_screening(st.session_state.answers, st.session_state.age)
     log_screening_response(
@@ -838,7 +844,6 @@ render_sidebar_tracker('page')
 st.markdown("""
 <style>
 @media (prefers-color-scheme: dark) {
-    /* Main Background & Typography in Dark Mode */
     .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
         background-color: #0B0F19 !important;
         color: #F8FAFC !important;
@@ -847,23 +852,18 @@ st.markdown("""
         background-color: #111827 !important;
         border-right: 1px solid #1E293B !important;
     }
-    section[data-testid="stSidebar"] .nav-hdr {
-        color: #F8FAFC !important;
-    }
-    section[data-testid="stSidebar"] .nav-sub {
-        color: #94A3B8 !important;
-    }
+    section[data-testid="stSidebar"] .nav-hdr { color: #F8FAFC !important; }
+    section[data-testid="stSidebar"] .nav-sub { color: #94A3B8 !important; }
     section[data-testid="stSidebar"] div.stButton > button[kind="secondary"] {
         background: #1E293B !important;
         color: #F8FAFC !important;
         border: 1.5px solid #334155 !important;
     }
-    /* Cards, Question Boxes, Detail Cards & Hospital Map Cards in Dark Mode */
     .lang-card, .q-card, .clean-card, .detail-card, .hosp-card, .patient-id-card {
         background: #111827 !important;
         border-color: #1E293B !important;
         color: #F8FAFC !important;
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4) !important;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45) !important;
     }
     .detail-card-head {
         background: #1E293B !important;
@@ -873,7 +873,6 @@ st.markdown("""
     .q-title, .clean-title, h1, h2, h3, h4, p, label, span {
         color: #F1F5F9;
     }
-    /* Radio Pill Options in Dark Mode */
     section.main div[data-testid="stRadio"] > div[role="radiogroup"] > label {
         background: #1E293B !important;
         border: 1.5px solid #334155 !important;
@@ -883,7 +882,6 @@ st.markdown("""
         border-color: #60A5FA !important;
         background: #1E3A8A !important;
     }
-    /* Inputs (Name, Age, PIN Code) in Dark Mode */
     div[data-baseweb="input"] > div, div[data-testid="stNumberInputContainer"] {
         background-color: #1E293B !important;
         border-color: #475569 !important;
@@ -893,13 +891,12 @@ st.markdown("""
         color: #F8FAFC !important;
         -webkit-text-fill-color: #F8FAFC !important;
     }
-    /* Dark Mode Styling for Embedded Maps & Hospital Locator Iframes */
+    /* Dark Mode Map Filter for Hospital Locator */
     iframe[src*="maps"], iframe[src*="openstreetmap"], .dark-map-frame iframe {
         filter: invert(90%) hue-rotate(180deg) brightness(95%) contrast(90%) !important;
         border-radius: 14px !important;
         border: 1.5px solid #334155 !important;
     }
-    /* Override inline light backgrounds inside main area for Dark Mode */
     section.main div[style*="background:#EFF6FF"],
     section.main div[style*="background: #EFF6FF"],
     section.main div[style*="background:#F8FAFC"],
@@ -911,13 +908,10 @@ st.markdown("""
         color: #F8FAFC !important;
     }
     section.main div[style*="color:#0F172A"],
-    section.main div[style*="color: #0F172A"],
-    section.main div[style*="color:#1E3A8A"],
-    section.main div[style*="color: #1E3A8A"] {
+    section.main div[style*="color:#1E3A8A"] {
         color: #93C5FD !important;
     }
     section.main div[style*="color:#475569"],
-    section.main div[style*="color: #475569"],
     section.main div[style*="color:#334155"] {
         color: #CBD5E1 !important;
     }
@@ -1067,26 +1061,18 @@ elif st.session_state.screening_step == 'results':
     # === PATIENT_IDENTITY_START ===
     lang = st.session_state.language
     _disp_name = st.session_state.get('patient_name', '').strip() or ('अनाम मरीज़ (Anonymous)' if lang == 'hi' else 'Anonymous Patient')
-    st.markdown(f"""
-    <div class="patient-id-card" style="background:linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%); color:#FFFFFF; border-radius:16px; padding:16px 22px; margin:8px 0 18px 0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; box-shadow:0 6px 18px rgba(37,99,235,0.22);">
-        <div>
-            <div style="font-size:0.76rem; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:#BFDBFE;">
-                {'📋 आधिकारिक स्क्रीनिंग रिपोर्ट • मरीज़ का विवरण' if lang == 'hi' else '📋 OFFICIAL SCREENING REPORT • PATIENT PROFILE'}
-            </div>
-            <div style="font-size:1.35rem; font-weight:800; color:#FFFFFF; margin-top:2px;">
-                👤 {_disp_name} <span style="font-size:0.95rem; font-weight:600; color:#DBEAFE;">({st.session_state.age} {'वर्ष / Yrs' if lang == 'hi' else 'Years Old'})</span>
-            </div>
-        </div>
-        <div style="background:rgba(255,255,255,0.16); padding:6px 14px; border-radius:999px; font-size:0.82rem; font-weight:800; color:#FFFFFF;">
-            {'✅ समुदाय ट्रैकर में सुरक्षित' if lang == 'hi' else '✅ Saved to Community Registry'}
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    if st.session_state.get("patient_voice_bytes"):
-        with st.expander("🎙️ रिकॉर्ड किया गया मरीज़ का नाम सुनें (Recorded Voice Name)" if lang == 'hi' else "🎙️ Play Recorded Patient Name Audio"):
-            st.audio(st.session_state.patient_voice_bytes, format="audio/wav")
+    st.markdown(
+        f"<div class='patient-id-card' style='background:linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%); color:#FFFFFF; border-radius:16px; padding:16px 22px; margin:8px 0 18px 0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; box-shadow:0 6px 18px rgba(37,99,235,0.22);'>"
+        f"<div><div style='font-size:0.76rem; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:#BFDBFE;'>{'📋 आधिकारिक स्क्रीनिंग रिपोर्ट • मरीज़ का विवरण' if lang == 'hi' else '📋 OFFICIAL SCREENING REPORT • PATIENT PROFILE'}</div>"
+        f"<div style='font-size:1.35rem; font-weight:800; color:#FFFFFF; margin-top:2px;'>👤 {_disp_name} <span style='font-size:0.95rem; font-weight:600; color:#DBEAFE;'>({st.session_state.age} {'वर्ष / Yrs' if lang == 'hi' else 'Years Old'})</span></div></div>"
+        f"<div style='background:rgba(255,255,255,0.16); padding:6px 14px; border-radius:999px; font-size:0.82rem; font-weight:800; color:#FFFFFF;'>{'✅ समुदाय ट्रैकर में सुरक्षित' if lang == 'hi' else '✅ Saved to Community Registry'}</div></div>",
+        unsafe_allow_html=True
+    )
+    if st.session_state.get('patient_voice_bytes'):
+        with st.expander('🎙️ रिकॉर्ड किया गया मरीज़ का नाम सुनें (Recorded Voice Name)' if lang == 'hi' else '🎙️ Play Recorded Patient Name Audio'):
+            st.audio(st.session_state.patient_voice_bytes, format='audio/wav')
     # === PATIENT_IDENTITY_END ===
-    lang = st.session_state.lang
+        lang = st.session_state.lang
     age = int(st.session_state.patient_age)
 
     # Pre-compute EVERYTHING (Analysis + Voice Audio + Dossier HTML + Initial PIN Data) BEFORE rendering a single element
