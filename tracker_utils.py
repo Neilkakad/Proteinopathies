@@ -3,10 +3,10 @@ from datetime import datetime
 import streamlit as st
 
 CSV_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "screening_responses.csv")
+VOICE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "saved_voice_names")
 ADMIN_PASSCODE = "neil2026"
 GOOGLE_SHEET_WEBHOOK_URL = ""
 
-# Clean, human-readable typography headers (no ugly underscores)
 CSV_HEADERS = [
     "Case ID",
     "Date & Time",
@@ -23,13 +23,11 @@ CSV_HEADERS = [
 ]
 
 def init_csv():
-    """Ensures CSV exists and upgrades old underscore headers automatically."""
     if not os.path.exists(CSV_PATH):
         with open(CSV_PATH, "w", newline="", encoding="utf-8-sig") as f:
             writer = csv.writer(f)
             writer.writerow(CSV_HEADERS)
         return
-
     try:
         with open(CSV_PATH, "r", encoding="utf-8-sig") as f:
             rows = [r for r in csv.reader(f) if any(cell.strip() for cell in r)]
@@ -38,7 +36,6 @@ def init_csv():
             upgraded_rows = []
             for idx, r in enumerate(data_rows, 1):
                 if len(r) == 10:
-                    # Migrate old 10-column row to new 12-column format
                     cid = f"SCR-{idx:03d}"
                     upgraded_rows.append([cid, r[0], f"Anonymous ({cid})", r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8], r[9]])
                 elif len(r) >= 12:
@@ -59,11 +56,23 @@ def get_total_screenings():
     except Exception:
         return 0
 
-def log_screening_response(lang, age, report, answers_dict, pin_code, patient_name=""):
+def log_screening_response(lang, age, report, answers_dict, pin_code, patient_name="", voice_bytes=None):
     init_csv()
     total_so_far = get_total_screenings() + 1
     case_id = f"SCR-{total_so_far:03d}"
-    clean_name = patient_name.strip() if patient_name and patient_name.strip() else f"Anonymous ({case_id})"
+
+    raw_name = patient_name.strip() if patient_name and patient_name.strip() else ""
+    if voice_bytes:
+        try:
+            os.makedirs(VOICE_DIR, exist_ok=True)
+            v_path = os.path.join(VOICE_DIR, f"{case_id}_name.wav")
+            with open(v_path, "wb") as vf:
+                vf.write(voice_bytes)
+            clean_name = f"{raw_name} 🎙️ (Voice Saved)" if raw_name else f"Voice Recorded ({case_id}) 🎙️"
+        except Exception:
+            clean_name = raw_name or f"Anonymous ({case_id})"
+    else:
+        clean_name = raw_name if raw_name else f"Anonymous ({case_id})"
 
     c = report["counts"]
     checked = report.get("checked_items", [])
@@ -130,7 +139,7 @@ def get_styled_html_report():
         <tr>
             <td style="font-weight:800; color:#1E3A8A; white-space:nowrap;">{r[0]}</td>
             <td style="color:#475569; white-space:nowrap;">{r[1]}</td>
-            <td style="font-weight:700; color:#0F172A;">{r[2]}</td>
+            <td style="font-weight:800; color:#0F172A;">{r[2]}</td>
             <td>{r[3]}</td>
             <td style="font-weight:700;">{r[4]}</td>
             <td style="font-weight:800; color:#1D4ED8;">{r[5]}</td>
@@ -349,6 +358,23 @@ def render_sidebar_tracker(key_suffix="main"):
             height: 100%;
             border-radius: 999px;
             transition: width 0.35s ease;
+        }}
+        @media (prefers-color-scheme: dark) {{
+            .impact-card-box {{
+                background: #0F172A !important;
+                border-color: #334155 !important;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35) !important;
+            }}
+            .impact-eyebrow {{ color: #60A5FA !important; }}
+            .impact-badge-inline {{
+                background: #1E293B !important;
+                color: #93C5FD !important;
+                border-color: #3B82F6 !important;
+            }}
+            .impact-count-line {{ color: #F8FAFC !important; }}
+            .impact-sub-line {{ color: #94A3B8 !important; }}
+            .impact-progress-track {{ background: #1E293B !important; }}
+            .impact-progress-fill {{ background: linear-gradient(90deg, #2563EB 0%, #38BDF8 100%) !important; }}
         }}
     </style>
     <div class="impact-card-box">
