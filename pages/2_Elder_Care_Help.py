@@ -806,7 +806,6 @@ def build_doctor_dossier_html(report, answers_dict, lang):
 if 'lang' not in st.session_state: st.session_state.lang = None
 if 'screening_step' not in st.session_state: st.session_state.screening_step = 'language_selection'
 if 'answers' not in st.session_state: st.session_state.answers = {}
-                st.session_state.response_logged = False
 if 'patient_age' not in st.session_state: st.session_state.patient_age = 68
 if 'pin_input' not in st.session_state: st.session_state.pin_input = '400071'
 if 'nav_count' not in st.session_state: st.session_state.nav_count = 0
@@ -815,9 +814,16 @@ def change_step(new_step, set_lang=None):
     if set_lang:
         st.session_state.lang = set_lang
     st.session_state.screening_step = new_step
+    if new_step != 'results':
+        st.session_state.response_logged = False
     st.session_state.nav_count = st.session_state.get('nav_count', 0) + 1
 
 force_scroll_to_top(st.session_state.screening_step, st.session_state.nav_count)
+try:
+    from tracker_utils import render_sidebar_tracker
+    render_sidebar_tracker()
+except Exception:
+    pass
 
 def render_step_progress(current_step, lang):
     steps = [
@@ -994,7 +1000,6 @@ elif st.session_state.screening_step == 'results':
                     if str(k).startswith('rad_'):
                         del st.session_state[k]
                 st.session_state.answers = {}
-                st.session_state.response_logged = False
                 change_step('language_selection')
                 st.rerun()
 
