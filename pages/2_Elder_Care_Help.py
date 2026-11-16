@@ -737,7 +737,7 @@ def build_doctor_dossier_html(report, answers_dict, lang):
     <div class="header">
         <div>
             <div class="tag">{'ELDER CARE CLINICAL REPORT' if lang=='en' else 'बुज़ुर्ग स्वास्थ्य एवं याददाश्त रिपोर्ट'}</div>
-            <h1 class="title">{doc_title}</h1><div style='background:#EFF6FF; border:1.5px solid #93C5FD; border-radius:10px; padding:10px 16px; margin:12px 0; font-family:sans-serif; font-size:14px; font-weight:800; color:#1E3A8A;'>👤 Patient Name / मरीज़ का नाम: {_p_nm}</div>
+            <h1 class="title">{doc_title}</h1><div style='background:#EFF6FF; border:1.5px solid #93C5FD; border-radius:10px; padding:10px 16px; margin:12px 0; font-family:sans-serif; font-size:14px; font-weight:800; color:#1E3A8A;'>👤 Patient Name / मरीज़ का नाम: {st.session_state.get('patient_name', '').strip() or ('Anonymous' if lang == 'en' else 'अनाम')}</div>
             <p class="sub">{doc_sub}</p>
         </div>
         <button class="print-btn" onclick="window.print()">🖨️ {'Print / Save as PDF' if lang=='en' else 'प्रिंट करें / PDF सेव करें'}</button>
@@ -805,7 +805,7 @@ def build_doctor_dossier_html(report, answers_dict, lang):
 
 if 'lang' not in st.session_state: st.session_state.lang = None
 if 'screening_step' not in st.session_state: st.session_state.screening_step = 'language_selection'
-if 'answers' not in st.session_state: st.session_state.answers = {}; st.session_state.response_logged = False
+if 'answers' not in st.session_state: st.session_state.answers = {}; st.session_state.response_logged = False; st.session_state.name_saved = False
 if 'patient_age' not in st.session_state: st.session_state.patient_age = 68
 if 'pin_input' not in st.session_state: st.session_state.pin_input = '400071'
 if 'nav_count' not in st.session_state: st.session_state.nav_count = 0
@@ -924,83 +924,108 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# SEPARATE HINDI AND ENGLISH NAME INTERFACES ON QUESTION STEPS
-if st.session_state.get("screening_step") not in ("language_selection", "results"):
-    if _active_lang == "hi":
-        # 1. Pure Hindi Question Card
-        st.markdown("""
-        <div class="name-q-card">
-            <span class="name-q-badge">👤 मरीज़ की पहचान</span>
-            <div class="name-q-title">कृपया यहाँ मरीज़ का नाम (या इनिशियल्स) लिखें</div>
-            <div class="name-q-sub">नीचे दिए गए बॉक्स में नाम लिखें। यह नाम आपकी फाइनल रिपोर्ट और डॉक्टर की रिपोर्ट पर लिखा आएगा।</div>
-        </div>
-        """, unsafe_allow_html=True)
+# SEPARATE HINDI AND ENGLISH NAME INTERFACES (Only shows full input on first step before saving; collapses once saved!)
+if "name_saved" not in st.session_state:
+    st.session_state.name_saved = False
 
-        # 2. Hindi Name Input + Save Confirmation
-        _c_in, _c_btn = st.columns([2.6, 1])
-        with _c_in:
-            _typed_hi = st.text_input(
-                "यहाँ अपना नाम लिखें:",
-                value=st.session_state.get("patient_name", ""),
-                placeholder="उदाहरण: रमेश कुमार या आर. के.",
-                label_visibility="collapsed",
-                key="patient_name_hi_box"
+_cur_step = str(st.session_state.get("screening_step", ""))
+# Detect if the user is on the very first step after language selection (e.g., age_selection or step 1)
+_is_first_page = _cur_step in ("age_selection", "step1", "step_1", "body", "step1_body", "questions") or ("1" in _cur_step) or ("age" in _cur_step)
+
+if _cur_step not in ("language_selection", "results"):
+    # Auto-collapse if they already typed a name and moved past the first page
+    if st.session_state.get("patient_name", "").strip() and not _is_first_page:
+        st.session_state.name_saved = True
+
+    if st.session_state.name_saved and st.session_state.get("patient_name", "").strip():
+        # Compact 1-line saved pill so the big box doesn't repeat on Page 1, 2, 3!
+        _c_pill, _c_edit = st.columns([4.5, 1])
+        with _c_pill:
+            if _active_lang == "hi":
+                st.markdown(
+                    f"<div style='background:#EFF6FF; border:1.5px solid #93C5FD; border-radius:12px; padding:8px 16px; margin:4px 0 12px 0; font-size:0.95rem; font-weight:800; color:#1E3A8A; display:flex; align-items:center; justify-content:space-between;'>"
+                    f"<span>👤 मरीज़ का नाम: <b>{st.session_state.patient_name}</b></span>"
+                    f"<span style='font-size:0.78rem; color:#16A34A; background:#DCFCE7; padding:2px 8px; border-radius:999px;'>✅ सेव किया गया</span></div>",
+                    unsafe_allow_html=True
+                )
+            else:
+                st.markdown(
+                    f"<div style='background:#EFF6FF; border:1.5px solid #93C5FD; border-radius:12px; padding:8px 16px; margin:4px 0 12px 0; font-size:0.95rem; font-weight:800; color:#1E3A8A; display:flex; align-items:center; justify-content:space-between;'>"
+                    f"<span>👤 Patient Name: <b>{st.session_state.patient_name}</b></span>"
+                    f"<span style='font-size:0.78rem; color:#16A34A; background:#DCFCE7; padding:2px 8px; border-radius:999px;'>✅ Saved</span></div>",
+                    unsafe_allow_html=True
+                )
+        with _c_edit:
+            if st.button("✏️ बदलें" if _active_lang == "hi" else "✏️ Edit", use_container_width=True, key="edit_saved_name_btn"):
+                st.session_state.name_saved = False
+                st.rerun()
+
+    elif _is_first_page or not st.session_state.get("patient_name", "").strip():
+        if _active_lang == "hi":
+            st.markdown("""
+            <div class="name-q-card">
+                <span class="name-q-badge">👤 मरीज़ की पहचान</span>
+                <div class="name-q-title">कृपया यहाँ मरीज़ का नाम (या इनिशियल्स) लिखें</div>
+                <div class="name-q-sub">नीचे दिए गए बॉक्स में नाम लिखकर 'नाम सेव करें' दबाएँ। यह नाम आपकी फाइनल रिपोर्ट और डॉक्टर की रिपोर्ट पर लिखा आएगा।</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            _c_in, _c_btn = st.columns([2.6, 1])
+            with _c_in:
+                _typed_hi = st.text_input(
+                    "यहाँ अपना नाम लिखें:",
+                    value=st.session_state.get("patient_name", ""),
+                    placeholder="उदाहरण: रमेश कुमार या आर. के.",
+                    label_visibility="collapsed",
+                    key="patient_name_hi_box"
+                )
+                st.session_state.patient_name = _typed_hi
+            with _c_btn:
+                if st.button("✅ नाम सेव करें", use_container_width=True, type="primary", key="save_name_hi_btn"):
+                    if st.session_state.patient_name.strip():
+                        st.session_state.name_saved = True
+                        st.rerun()
+
+            _hi_voice_guide = get_Dynamic_Result_Voice(
+                "कृपया यहाँ ऊपर दिए गए बॉक्स में मरीज़ का नाम या इनिशियल्स लिखें। यह नाम आपकी फाइनल रिपोर्ट में लिखा आएगा।",
+                "hi"
             )
-            st.session_state.patient_name = _typed_hi
-        with _c_btn:
-            if st.button("✅ नाम सेव करें", use_container_width=True, key="save_name_hi_btn"):
-                if st.session_state.patient_name.strip():
-                    st.toast(f"नाम सेव हो गया: {st.session_state.patient_name}")
+            if _hi_voice_guide:
+                st.audio(_hi_voice_guide, format="audio/mp3")
 
-        if st.session_state.patient_name.strip():
-            st.markdown(f"<div style='font-size:0.86rem; font-weight:700; color:#16A34A; margin:2px 0 6px 4px;'>✅ मरीज़ का नाम दर्ज किया गया: <b>{st.session_state.patient_name}</b></div>", unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div class="name-q-card">
+                <span class="name-q-badge">👤 Patient Identification</span>
+                <div class="name-q-title">Please write the patient's name (or initials) over here</div>
+                <div class="name-q-sub">Enter the name in the box below and click 'Save Name'. This name will appear on your Final Summary and Printable Doctor Report.</div>
+            </div>
+            """, unsafe_allow_html=True)
 
-        # 3. Hindi Voice Audio Explanation Below the Input
-        _hi_voice_guide = get_Dynamic_Result_Voice(
-            "कृपया यहाँ ऊपर दिए गए बॉक्स में मरीज़ का नाम या इनिशियल्स लिखें। यह नाम आपकी फाइनल रिपोर्ट में लिखा आएगा।",
-            "hi"
-        )
-        if _hi_voice_guide:
-            st.audio(_hi_voice_guide, format="audio/mp3")
+            _c_in_en, _c_btn_en = st.columns([2.6, 1])
+            with _c_in_en:
+                _typed_en = st.text_input(
+                    "Write your name over here:",
+                    value=st.session_state.get("patient_name", ""),
+                    placeholder="e.g., Ramesh Kumar or R. K.",
+                    label_visibility="collapsed",
+                    key="patient_name_en_box"
+                )
+                st.session_state.patient_name = _typed_en
+            with _c_btn_en:
+                if st.button("✅ Save Name", use_container_width=True, type="primary", key="save_name_en_btn"):
+                    if st.session_state.patient_name.strip():
+                        st.session_state.name_saved = True
+                        st.rerun()
 
-    else:
-        # 1. Pure English Question Card
-        st.markdown("""
-        <div class="name-q-card">
-            <span class="name-q-badge">👤 Patient Identification</span>
-            <div class="name-q-title">Please write the patient's name (or initials) over here</div>
-            <div class="name-q-sub">Enter the name in the box below. This name will appear on your Final Summary and Printable Doctor Report.</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        # 2. English Name Input + Save Confirmation
-        _c_in_en, _c_btn_en = st.columns([2.6, 1])
-        with _c_in_en:
-            _typed_en = st.text_input(
-                "Write your name over here:",
-                value=st.session_state.get("patient_name", ""),
-                placeholder="e.g., Ramesh Kumar or R. K.",
-                label_visibility="collapsed",
-                key="patient_name_en_box"
+            _en_voice_guide = get_Dynamic_Result_Voice(
+                "Please write the patient's name or initials over here in the box above. This name will appear on your final report.",
+                "en"
             )
-            st.session_state.patient_name = _typed_en
-        with _c_btn_en:
-            if st.button("✅ Save Name", use_container_width=True, key="save_name_en_btn"):
-                if st.session_state.patient_name.strip():
-                    st.toast(f"Name saved: {st.session_state.patient_name}")
+            if _en_voice_guide:
+                st.audio(_en_voice_guide, format="audio/mp3")
 
-        if st.session_state.patient_name.strip():
-            st.markdown(f"<div style='font-size:0.86rem; font-weight:700; color:#16A34A; margin:2px 0 6px 4px;'>✅ Patient Name Recorded: <b>{st.session_state.patient_name}</b></div>", unsafe_allow_html=True)
-
-        # 3. English Voice Audio Explanation Below the Input
-        _en_voice_guide = get_Dynamic_Result_Voice(
-            "Please write the patient's name or initials over here in the box above. This name will appear on your final report.",
-            "en"
-        )
-        if _en_voice_guide:
-            st.audio(_en_voice_guide, format="audio/mp3")
-
-    st.markdown("<hr style='margin: 12px 0 20px 0; border:none; border-top:1.5px solid #CBD5E1;'>", unsafe_allow_html=True)
+        st.markdown("<hr style='margin: 12px 0 20px 0; border:none; border-top:1.5px solid #CBD5E1;'>", unsafe_allow_html=True)
 
 # Top-of-page Patient Profile Banner on Final Results page (Pure Hindi in Hindi mode, Pure English in English mode)
 if st.session_state.get("screening_step") == "results":
@@ -1192,7 +1217,7 @@ elif st.session_state.screening_step == 'results':
                 for k in list(st.session_state.keys()):
                     if str(k).startswith('rad_'):
                         del st.session_state[k]
-                st.session_state.answers = {}; st.session_state.response_logged = False
+                st.session_state.answers = {}; st.session_state.response_logged = False; st.session_state.name_saved = False
                 change_step('language_selection')
                 st.rerun()
 
