@@ -291,7 +291,8 @@ def get_styled_html_report():
 </html>"""
     return html.encode("utf-8")
 
-def render_sidebar_tracker(key_suffix="main"):
+def render_sidebar_tracker(*args, **kwargs):
+    key_suffix = args[0] if args else kwargs.get("key_suffix", "main")
     total = get_total_screenings()
     goal = 100 if total < 100 else ((total // 100) + 1) * 100
     pct = min(100, int((total / goal) * 100)) if goal > 0 else 0
@@ -391,7 +392,7 @@ def render_sidebar_tracker(key_suffix="main"):
     if "admin_unlocked" not in st.session_state:
         st.session_state.admin_unlocked = False
 
-    with st.sidebar.expander("🔒 Researcher Data Export", expanded=st.session_state.admin_unlocked):
+    with st.sidebar.expander("🔒 Researcher Data Export"):
         pwd = st.text_input(
             "Researcher Passcode:",
             type="password",

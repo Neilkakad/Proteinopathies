@@ -1545,8 +1545,12 @@ if st.session_state.active_app_module != "elder":
     import os as _os, sys as _sys
     if _os.path.dirname(_os.path.abspath(__file__)) not in _sys.path:
         _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
-    from tracker_utils import render_sidebar_tracker  # type: ignore
-    render_sidebar_tracker("atlas")
+    import importlib, tracker_utils  # type: ignore
+    importlib.reload(tracker_utils)
+    try:
+        tracker_utils.render_sidebar_tracker("atlas")
+    except TypeError:
+        tracker_utils.render_sidebar_tracker()
 if st.session_state.active_app_module == "elder":
     exec(open("pages/2_Elder_Care_Help.py", encoding="utf-8").read(), globals())
     st.stop()

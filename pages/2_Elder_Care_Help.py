@@ -823,6 +823,8 @@ import sys as _sys
 _root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _root_dir not in _sys.path:
     _sys.path.insert(0, _root_dir)
+import importlib, tracker_utils  # type: ignore
+importlib.reload(tracker_utils)
 from tracker_utils import render_sidebar_tracker, log_screening_response  # type: ignore
 
 if "patient_name" not in st.session_state:
@@ -1460,4 +1462,7 @@ if st.session_state.get("screening_step") == "results":
     </div>
     """, unsafe_allow_html=True)
 
-render_sidebar_tracker("page")
+try:
+    render_sidebar_tracker("page")
+except TypeError:
+    render_sidebar_tracker()
