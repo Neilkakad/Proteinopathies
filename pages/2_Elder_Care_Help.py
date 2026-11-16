@@ -80,43 +80,7 @@ st.markdown("""
 
     /* Sleek Step Progress Bar */
     .step-bar { display: flex; justify-content: space-between; gap: 10px; margin: 4px 0 20px 0; background: #F1F5F9; padding: 7px; border-radius: 14px; border: 1px solid #CBD5E1; }
-    # === PATIENT_IDENTITY_START ===
-    if st.session_state.get('screening_step') not in ('language_selection', 'results'):
-        _lang = st.session_state.get('language', 'hi')
-        st.markdown(
-            f"<div class='patient-id-card' style='background:#EFF6FF; border:2px solid #3B82F6; border-radius:16px; padding:16px 20px; margin:6px 0 14px 0; box-shadow:0 4px 12px rgba(37,99,235,0.08);'>"
-            f"<div style='font-size:1.12rem; font-weight:800; color:#1E3A8A; margin-bottom:4px;'>{'👤 मरीज़ का नाम (या इनिशियल्स) और आवाज़ रिकॉर्डर' if _lang == 'hi' else '👤 Patient Name (or Initials) & Voice Recorder'}</div>"
-            f"<div style='font-size:0.88rem; color:#334155; font-weight:600; line-height:1.4;'>{'कृपया नीचे मरीज़ का नाम या इनिशियल्स लिखें, या माइक दबाकर अपना नाम बोलें। यह नाम आपकी डॉक्टर रिपोर्ट और फाइनल रिपोर्ट दोनों पर लिखा आएगा।' if _lang == 'hi' else 'Please enter the patient name/initials below, or click the microphone to speak your name. It will be printed on your Final Summary & Doctor Report.'}</div>"
-            f"</div>",
-            unsafe_allow_html=True
-        )
-        _id_mp3 = get_Dynamic_Result_Voice('कृपया मरीज़ का नाम या इनिशियल्स यहाँ लिखें, या माइक दबाकर अपना नाम बोलें।' if _lang == 'hi' else 'Please enter the patient name or initials below, or record their name using the microphone.', _lang)
-        if _id_mp3: st.audio(_id_mp3, format='audio/mp3')
-        _c_nm, _c_ag, _c_vc = st.columns([1.4, 0.8, 1.2])
-        with _c_nm:
-            st.session_state.patient_name = st.text_input(
-                '✍️ मरीज़ का नाम / इनिशियल्स:' if _lang == 'hi' else '✍️ Patient Name / Initials:',
-                value=st.session_state.get('patient_name', ''),
-                placeholder='उदा. रमेश के. / e.g. Ramesh K.' if _lang == 'hi' else 'e.g. Ramesh K.',
-                key='patient_name_top_input'
-            )
-        with _c_ag:
-            st.session_state.age = st.number_input(
-                '🎂 उम्र (वर्ष):' if _lang == 'hi' else '🎂 Age (Years):',
-                40, 110, int(st.session_state.get('age', 68)),
-                key='patient_age_top_input'
-            )
-        with _c_vc:
-            if hasattr(st, 'audio_input'):
-                _v_rec = st.audio_input('🎙️ बोलकर नाम रिकॉर्ड करें (Voice):' if _lang == 'hi' else '🎙️ Record Name by Voice:', key='patient_voice_top_input')
-                if _v_rec is not None:
-                    st.session_state.patient_voice_bytes = _v_rec.getvalue()
-                    if not st.session_state.patient_name.strip():
-                        st.session_state.patient_name = 'आवाज़ द्वारा दर्ज (Voice)' if _lang == 'hi' else 'Voice Recorded Patient'
-                    st.success('✅ आवाज़ सुरक्षित!' if _lang == 'hi' else '✅ Voice Saved!')
-        st.markdown("<hr style='margin: 10px 0 18px 0; border:none; border-top:1.5px solid #CBD5E1;'>", unsafe_allow_html=True)
-    # === PATIENT_IDENTITY_END ===
-    .step-pill { flex: 1; text-align: center; padding: 10px 8px; border-radius: 10px; font-size: 0.94rem; font-weight: 700; color: #475569; }
+        .step-pill { flex: 1; text-align: center; padding: 10px 8px; border-radius: 10px; font-size: 0.94rem; font-weight: 700; color: #475569; }
     .step-pill.active { background: linear-gradient(135deg, #1E40AF 0%, #2563EB 100%); color: #FFFFFF !important; box-shadow: 0 4px 10px rgba(37,99,235,0.22); }
     .step-pill.done { background: #DCFCE7; color: #166534 !important; }
 
@@ -864,24 +828,74 @@ def change_step(new_step, set_lang=None):
     st.session_state.nav_count = st.session_state.get('nav_count', 0) + 1
 
 force_scroll_to_top(st.session_state.screening_step, st.session_state.nav_count)
+# === TOP_TRACKER_AND_ID_START ===
 import sys as _sys
 _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _root not in _sys.path:
     _sys.path.insert(0, _root)
 from tracker_utils import render_sidebar_tracker, log_screening_response  # type: ignore
-if st.session_state.get('screening_step') == 'results' and not st.session_state.get('response_logged', False):
-    _rep = evaluate_screening(st.session_state.answers, st.session_state.age)
-    log_screening_response(
-        st.session_state.language,
-        st.session_state.age,
-        _rep,
-        st.session_state.answers,
-        st.session_state.get('pin_input', ''),
-        st.session_state.get('patient_name', ''),
-        st.session_state.get('patient_voice_bytes', None)
+
+if 'patient_name' not in st.session_state:
+    st.session_state.patient_name = ''
+if 'patient_voice_bytes' not in st.session_state:
+    st.session_state.patient_voice_bytes = None
+
+# Render the Patient Name + Age + Bilingual Voice Recorder at the top of ALL question steps
+if st.session_state.get('screening_step') not in ('language_selection', 'results'):
+    _lang = st.session_state.get('language', 'hi')
+    st.markdown(
+        f"<div class='patient-id-card' style='background:#EFF6FF; border:2px solid #3B82F6; border-radius:16px; padding:16px 20px; margin:8px 0 12px 0; box-shadow:0 4px 12px rgba(37,99,235,0.08);'>"
+        f"<div style='font-size:1.12rem; font-weight:800; color:#1E3A8A; margin-bottom:4px;'>{'👤 मरीज़ का नाम (या इनिशियल्स) और आवाज़ रिकॉर्डर' if _lang == 'hi' else '👤 Patient Name (or Initials) & Voice Recorder'}</div>"
+        f"<div style='font-size:0.88rem; color:#334155; font-weight:600; line-height:1.4;'>{'कृपया नीचे मरीज़ का नाम या इनिशियल्स लिखें, या माइक दबाकर अपना नाम बोलें। यह नाम आपकी डॉक्टर रिपोर्ट और फाइनल रिपोर्ट दोनों पर लिखा आएगा।' if _lang == 'hi' else 'Please enter the patient name/initials below, or click the microphone to speak your name. It will be printed on your Final Summary & Doctor Report.'}</div>"
+        f"</div>",
+        unsafe_allow_html=True
     )
-    st.session_state.response_logged = True
-render_sidebar_tracker('page')
+    try:
+        _id_mp3 = get_Dynamic_Result_Voice(
+            'कृपया मरीज़ का नाम या इनिशियल्स यहाँ लिखें, या माइक दबाकर अपना नाम बोलें।' if _lang == 'hi' else 'Please enter the patient name or initials below, or record their name using the microphone.',
+            _lang
+        )
+        if _id_mp3:
+            st.audio(_id_mp3, format='audio/mp3')
+    except Exception:
+        pass
+    _c_nm, _c_vc = st.columns([1.35, 1])
+    with _c_nm:
+        st.session_state.patient_name = st.text_input(
+            '✍️ मरीज़ का नाम या इनिशियल्स (जैसे: रमेश के.):' if _lang == 'hi' else '✍️ Patient Name or Initials (e.g., Ramesh K.):',
+            value=st.session_state.get('patient_name', ''),
+            placeholder='यहाँ नाम लिखें... / Type Name or Initials...' if _lang == 'hi' else 'Type Name or Initials (e.g., Ramesh K.)...',
+            key='patient_name_top_widget'
+        )
+    with _c_vc:
+        if hasattr(st, 'audio_input'):
+            _v_rec = st.audio_input(
+                '🎙️ बोलकर नाम रिकॉर्ड करें (हिंदी / English):' if _lang == 'hi' else '🎙️ Or Record Name by Voice (Hindi / English):',
+                key='patient_voice_top_widget'
+            )
+            if _v_rec is not None:
+                st.session_state.patient_voice_bytes = _v_rec.getvalue()
+                if not st.session_state.patient_name.strip():
+                    st.session_state.patient_name = 'आवाज़ द्वारा दर्ज (Voice)' if _lang == 'hi' else 'Voice Recorded Patient'
+                st.success('✅ आपकी आवाज़ में नाम सुरक्षित!' if _lang == 'hi' else '✅ Voice name recorded!')
+    st.markdown("<hr style='margin: 10px 0 18px 0; border:none; border-top:1.5px solid #CBD5E1;'>", unsafe_allow_html=True)
+
+# Render the Patient Profile Banner at the top of the Final Results page
+if st.session_state.get('screening_step') == 'results':
+    _lang = st.session_state.get('language', 'hi')
+    _disp_name = st.session_state.get('patient_name', '').strip() or ('अनाम मरीज़ (Anonymous)' if _lang == 'hi' else 'Anonymous Patient')
+    st.markdown(
+        f"<div class='patient-id-card' style='background:linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%); color:#FFFFFF; border-radius:16px; padding:16px 22px; margin:8px 0 18px 0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; box-shadow:0 6px 18px rgba(37,99,235,0.22);'>"
+        f"<div><div style='font-size:0.76rem; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:#BFDBFE;'>{'📋 आधिकारिक स्क्रीनिंग रिपोर्ट • मरीज़ का विवरण' if _lang == 'hi' else '📋 OFFICIAL SCREENING REPORT • PATIENT PROFILE'}</div>"
+        f"<div style='font-size:1.35rem; font-weight:800; color:#FFFFFF; margin-top:2px;'>👤 {_disp_name} <span style='font-size:0.95rem; font-weight:600; color:#DBEAFE;'>({st.session_state.get('age', 68)} {'वर्ष / Yrs' if _lang == 'hi' else 'Years Old'})</span></div></div>"
+        f"<div style='background:rgba(255,255,255,0.16); padding:6px 14px; border-radius:999px; font-size:0.82rem; font-weight:800; color:#FFFFFF;'>{'✅ समुदाय ट्रैकर में सुरक्षित' if _lang == 'hi' else '✅ Saved to Community Registry'}</div></div>",
+        unsafe_allow_html=True
+    )
+    if st.session_state.get('patient_voice_bytes'):
+        with st.expander('🎙️ रिकॉर्ड किया गया मरीज़ का नाम सुनें (Recorded Voice Name)' if _lang == 'hi' else '🎙️ Play Recorded Patient Name Audio'):
+            st.audio(st.session_state.patient_voice_bytes, format='audio/wav')
+# === TOP_TRACKER_AND_ID_END ===
+
 # === DARK_MODE_OVERRIDE_START ===
 st.markdown("""
 <style>
@@ -1100,21 +1114,7 @@ elif st.session_state.screening_step in ['bucket1', 'bucket2', 'bucket3']:
 
 # ==================== PAGE 4: ATOMIC ALL-AT-ONCE REPORT RENDERING ====================
 elif st.session_state.screening_step == 'results':
-    # === PATIENT_IDENTITY_START ===
-    _lang = st.session_state.get('language', 'hi')
-    _disp_name = st.session_state.get('patient_name', '').strip() or ('अनाम मरीज़ (Anonymous)' if _lang == 'hi' else 'Anonymous Patient')
-    st.markdown(
-        f"<div class='patient-id-card' style='background:linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%); color:#FFFFFF; border-radius:16px; padding:16px 22px; margin:8px 0 18px 0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; box-shadow:0 6px 18px rgba(37,99,235,0.22);'>"
-        f"<div><div style='font-size:0.76rem; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:#BFDBFE;'>{'📋 आधिकारिक स्क्रीनिंग रिपोर्ट • मरीज़ का विवरण' if _lang == 'hi' else '📋 OFFICIAL SCREENING REPORT • PATIENT PROFILE'}</div>"
-        f"<div style='font-size:1.35rem; font-weight:800; color:#FFFFFF; margin-top:2px;'>👤 {_disp_name} <span style='font-size:0.95rem; font-weight:600; color:#DBEAFE;'>({st.session_state.age} {'वर्ष / Yrs' if _lang == 'hi' else 'Years Old'})</span></div></div>"
-        f"<div style='background:rgba(255,255,255,0.16); padding:6px 14px; border-radius:999px; font-size:0.82rem; font-weight:800; color:#FFFFFF;'>{'✅ समुदाय ट्रैकर में सुरक्षित' if _lang == 'hi' else '✅ Saved to Community Registry'}</div></div>",
-        unsafe_allow_html=True
-    )
-    if st.session_state.get('patient_voice_bytes'):
-        with st.expander('🎙️ रिकॉर्ड किया गया मरीज़ का नाम सुनें (Recorded Voice Name)' if _lang == 'hi' else '🎙️ Play Recorded Patient Name Audio'):
-            st.audio(st.session_state.patient_voice_bytes, format='audio/wav')
-    # === PATIENT_IDENTITY_END ===
-            lang = st.session_state.lang
+                lang = st.session_state.lang
     age = int(st.session_state.patient_age)
 
     # Pre-compute EVERYTHING (Analysis + Voice Audio + Dossier HTML + Initial PIN Data) BEFORE rendering a single element
@@ -1127,6 +1127,17 @@ elif st.session_state.screening_step == 'results':
         plan = get_age_and_rural_urban_plan(age, lang)
         voice_bytes = get_Dynamic_Result_Voice(report['voice_hi'] if lang == 'hi' else report['voice_en'], lang, tag='res_calm_v140')
         dossier_html = build_doctor_dossier_html(report, st.session_state.answers, lang)
+        if not st.session_state.get('response_logged', False):
+            log_screening_response(
+                lang,
+                st.session_state.get('age', 68),
+                report,
+                st.session_state.answers,
+                st.session_state.get('pin_input', ''),
+                st.session_state.get('patient_name', ''),
+                st.session_state.get('patient_voice_bytes', None)
+            )
+            st.session_state.response_logged = True
         initial_pin_data = None
         if report['moderate_to_high_risk'] and len(st.session_state.pin_input.strip()) == 6 and st.session_state.pin_input.strip().isdigit():
             initial_pin_data = lookup_india_pincode_and_clinics(st.session_state.pin_input)
@@ -1351,3 +1362,5 @@ elif st.session_state.screening_step == 'results':
                 type='primary',
                 use_container_width=True
             )
+
+render_sidebar_tracker('page')
