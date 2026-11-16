@@ -1542,15 +1542,61 @@ if st.sidebar.button(
 st.sidebar.markdown("<hr style='margin: 10px 0 16px 0; border: none; border-top: 1.5px solid #E2E8F0;'>", unsafe_allow_html=True)
 
 if st.session_state.active_app_module != "elder":
-    import os as _os, sys as _sys
-    if _os.path.dirname(_os.path.abspath(__file__)) not in _sys.path:
-        _sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
-    import importlib, tracker_utils  # type: ignore
-    importlib.reload(tracker_utils)
-    try:
-        tracker_utils.render_sidebar_tracker("atlas")
-    except TypeError:
-        tracker_utils.render_sidebar_tracker()
+    st.sidebar.markdown("""
+    <style>
+        @keyframes pulseGlowArrow {
+            0%, 100% {
+                transform: translateY(0px);
+                box-shadow: 0 0 12px rgba(37, 99, 235, 0.45), 0 0 24px rgba(56, 189, 248, 0.25);
+            }
+            50% {
+                transform: translateY(-4px);
+                box-shadow: 0 0 20px rgba(37, 99, 235, 0.85), 0 0 34px rgba(56, 189, 248, 0.55);
+            }
+        }
+        @keyframes bounceUpArrow {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        .elder-glow-pointer {
+            background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 55%, #0284C7 100%);
+            color: #FFFFFF !important;
+            border: 1.5px solid #93C5FD;
+            border-radius: 12px;
+            padding: 10px 12px;
+            margin: 6px 0 10px 0;
+            text-align: center;
+            font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+            animation: pulseGlowArrow 2s infinite ease-in-out;
+        }
+        .elder-glow-arrow {
+            font-size: 1.2rem;
+            display: inline-block;
+            animation: bounceUpArrow 1.1s infinite ease-in-out;
+            color: #FDE047 !important;
+            text-shadow: 0 0 10px rgba(253, 224, 71, 0.9);
+        }
+        .elder-glow-title {
+            font-size: 0.78rem;
+            font-weight: 800;
+            color: #FFFFFF !important;
+            letter-spacing: 0.02em;
+            line-height: 1.3;
+            margin-top: 2px;
+        }
+        .elder-glow-sub {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #BAE6FD !important;
+            margin-top: 2px;
+        }
+    </style>
+    <div class="elder-glow-pointer">
+        <div class="elder-glow-arrow">⬆️ ✨ ⬆️</div>
+        <div class="elder-glow-title">Click Above for Free 2-Min Family Memory Check</div>
+        <div class="elder-glow-sub">बुज़ुर्गों की याददाश्त जाँच के लिए ऊपर क्लिक करें</div>
+    </div>
+    """, unsafe_allow_html=True)
 if st.session_state.active_app_module == "elder":
     exec(open("pages/2_Elder_Care_Help.py", encoding="utf-8").read(), globals())
     st.stop()

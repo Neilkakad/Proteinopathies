@@ -378,6 +378,10 @@ def render_sidebar_tracker(*args, **kwargs):
             .impact-progress-fill {{ background: linear-gradient(90deg, #2563EB 0%, #38BDF8 100%) !important; }}
         }}
     </style>
+    <div class="impact-glow-indicator" style="display:flex; align-items:center; gap:6px; background:linear-gradient(90deg, #FEF3C7 0%, #DBEAFE 100%); border:1.5px solid #60A5FA; border-radius:999px; padding:4px 10px; margin:6px 0 4px 0; box-shadow:0 0 14px rgba(59,130,246,0.35);">
+        <span style="font-size:0.9rem;">✨👇</span>
+        <span style="font-size:0.68rem; font-weight:800; color:#1E3A8A; letter-spacing:0.03em; text-transform:uppercase;">Live Community Goal</span>
+    </div>
     <div class="impact-card-box">
         <span class="impact-eyebrow">Community Impact</span>
         <span class="impact-badge-inline">Goal: {total} / {goal}</span>
