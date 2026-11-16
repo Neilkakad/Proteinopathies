@@ -1397,7 +1397,27 @@ elif st.session_state.screening_step == 'results':
             </div>
             """, unsafe_allow_html=True)
 
-            w1, w2 = st.columns(2, gap='medium')
+            # Voice Audio Explanation for Diet, Dry Fruits & Daily Exercise Chart
+            _diet_speech_hi = (
+                f"दिमागी पोषण और दैनिक व्यायाम की सलाह: {st.session_state.get('patient_name', '')} जी की उम्र {age} वर्ष और स्वास्थ्य रिपोर्ट के अनुसार, "
+                f"रोज़ सुबह 4 से 5 भीगे और छिले हुए बादाम, 2 अखरोट की गिरी, 2 भीगी मुनक्का, और 1 चम्मच भुनी अलसी या कद्दू के बीज ज़रूर दें। "
+                f"खाने में रागी, बाजरा या ज्वार की रोटी, भुना मखाना, सहजन, हरी पत्तेदार सब्ज़ियाँ, दलिया, ओट्स, पनीर, दालें और रात को चुटकी भर हल्दी वाला गुनगुना दूध शामिल करें। "
+                f"पैकेट वाले नमकीन-बिस्किट से बचें और साल में एक बार विटामिन बी-12, डी-3, शुगर और बीपी की जाँच करवाएँ। "
+                f"रोज़ सुबह की हल्की धूप में 20 मिनट आराम से टहलें, कुर्सी पर बैठकर पैरों, घुटनों और कलाई को घुमाने की कसरत करें, और शाम को परिवार के साथ बैठकर बातचीत करें।"
+            )
+            _diet_speech_en = (
+                f"Brain Nutrition, Dry Fruits, and Daily Exercise Plan tailored for age {age} years: "
+                f"Every morning, give 4 to 5 soaked and peeled almonds, 2 walnut halves, 2 soaked raisins, and 1 spoon of roasted flax or pumpkin seeds. "
+                f"For daily meals, include ragi or millet rotis, roasted foxnuts, moringa, leafy greens, oats, paneer, lentils, and warm turmeric milk at night, while avoiding packaged salty or sugary snacks. "
+                f"Check Vitamin B12, Vitamin D3, blood sugar, and blood pressure once a year. "
+                f"For daily exercise, take a gentle 20-minute morning walk in mild sunlight, practice seated ankle, knee, and wrist rotations, and spend time in active evening family conversation."
+            )
+            _diet_lbl = "🔊 खान-पान, सूखे मेवे और रोज़ की कसरत की पूरी सलाह सुनें (Audio Guide):" if lang == 'hi' else "🔊 Listen to the Spoken Diet, Dry Fruits & Daily Exercise Plan (Audio Guide):"
+            st.markdown(f"<div style='background:#ECFDF5; border:1.5px solid #6EE7B7; border-radius:12px; padding:10px 16px; margin:8px 0 6px 0; font-size:0.95rem; font-weight:800; color:#065F46;'>{_diet_lbl}</div>", unsafe_allow_html=True)
+            diet_chart_voice_audio = get_Dynamic_Result_Voice(_diet_speech_hi if lang == 'hi' else _diet_speech_en, lang)
+            if diet_chart_voice_audio:
+                st.audio(diet_chart_voice_audio, format='audio/mp3')
+                        w1, w2 = st.columns(2, gap='medium')
             with w1:
                 st.markdown(f"""
                 <div class='wellness-col-card'>
